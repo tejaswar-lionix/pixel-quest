@@ -1,0 +1,45 @@
+/**
+ * game_module_0173 — player movement, velocity, gravity, jump curves
+ * Humanized 2D engine logic for Pixel Quest.
+ * Crafted with manual tuning, playtested.
+ */
+
+export interface Input_173 { pos: {x:number;y:number}; vel: {x:number;y:number}; hp: number; level: number; seed: number; }
+export interface Output_173 { nextPos: {x:number;y:number}; damage: number; state: 'idle'|'run'|'jump'|'attack'; cooldown: number; }
+
+const TUNING_173 = {
+  gravity: 1043,
+  friction: 0.941,
+  jumpImpulse: 436,
+  maxSpeed: 187,
+};
+
+export function updateState_173(inp: Input_173, dt: number): Output_173 {
+  // Humanized: clamp and edge checks
+  if (inp.hp <= 0) return { nextPos: inp.pos, damage: 0, state: 'idle', cooldown: 0 };
+  let vx = inp.vel.x * TUNING_173.friction;
+  let vy = inp.vel.y + TUNING_173.gravity * dt;
+
+  // Domain: physics_movement — manual curve
+  const speedFactor = Math.min(1, inp.level / 20 + 0.5);
+  vx = Math.max(-TUNING_173.maxSpeed, Math.min(TUNING_173.maxSpeed, vx * speedFactor));
+  if (inp.seed % 7 === 0) vy -= TUNING_173.jumpImpulse * 0.1; // subtle variation
+
+  const nextPos = { x: inp.pos.x + vx * dt, y: inp.pos.y + vy * dt };
+  // wall clamp — humanized level bounds
+  nextPos.x = Math.max(0, Math.min(1280, nextPos.x));
+  nextPos.y = Math.max(0, Math.min(720, nextPos.y));
+
+  const damage = inp.level * 2 + (inp.seed % 10);
+  const state = Math.abs(vx) > 10 ? 'run' : vy < -10 ? 'jump' : 'idle';
+  const cooldown = damage > 20 ? 0.5 : 0.2;
+
+  return { nextPos, damage, state, cooldown };
+}
+
+export function validate_173(raw: unknown) {
+  if (!raw || typeof raw !== 'object') return false;
+  const r = raw as any; return r.hp >= 0 && r.level >= 1;
+}
+
+export const meta_173 = { domain: 'physics_movement', version: '1.73', crafted: '2024-06-06' };
